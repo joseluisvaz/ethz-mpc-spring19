@@ -25,20 +25,39 @@ function param = compute_controller_base_parameters
     B = sys_discrete.B;
     
     % (3) set point computation
-    T_sp = ...
-    p_sp = ...
+    % Setting the disturbances 
+    B_d = diag([1/p.m1, 1/p.m2,1/p.m3]);
+
+    d = zeros(3,1);
+    d(1) = p.a1o*p.To + p.w(1); 
+    d(2) = p.a2o*p.To + p.w(2);
+    d(3) = p.a3o*p.To + p.w(3);
+    offset = B_d*d'; 
+
+    % Is T_sp(3) calculated correctly
+    T_sp = zeros(3,1);
+    T_sp(1) = -20;
+    T_sp(2) = 0.25;
+    T_sp(3) = 1/(1-A(3,3)) * (A(3,2)*T_sp(2) + offset(3));
+    
+    p_sp = zeros(2,1);
+    p_sp(1) = 1/B(1,1)*((1-A(1,1))*T_sp(1) -     A(1,2)*T_sp(2) - offset(1));
+    p_sp(2) = 1/B(2,2)*(   -A(2,1)*T_sp(1) + (1-A(2,2))*T_sp(2) - A(2,3)*T_sp(3) - offset(2));
+
+    % Approximating the input set point surprisingly similar
+    prov = B\(T_sp - A*T_sp - offset);
     
     % (4) system constraints
     Pcons = truck.InputConstraints;
     Tcons = truck.StateConstraints;
     
     % (4) constraints for delta formulation
-    Ucons = ...
-    Xcons = ...
+    Ucons = Pcons - p_sp; 
+    Xcons = Tcons - T_sp; 
     
     % (5) LQR cost function
-    Q = ...
-    R = ...
+    Q = eye(3); 
+    R = eye(2); 
     
     % put everything together
     param.A = A;
