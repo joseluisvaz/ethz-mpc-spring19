@@ -1,6 +1,6 @@
 % Init
 clear all
-close all
+% close all
 addpath(genpath(cd));
 load('system/parameters_scenarios.mat');
 
@@ -14,7 +14,12 @@ T0_1 = param.T_sp + x0_1;
 
 x0_2 = [-1 -0.1 -4.5]';
 T0_2 = param.T_sp + x0_2;
-[T, p] = simulate_truck(T0_2, @controller_mpc_3, scen2);
+
+global T_est
+T_est = T0_1;
+global d_est
+d_est = param.d;
+[T, p] = simulate_truck(T0_1, @controller_mpc_5, scen3);
 
 err = norm(param.T_sp-T(:,30));
 if err <= 0.2*norm(x0_2)
@@ -24,6 +29,30 @@ else
 end
 
 %%
+figure;
+subplot(3,1,1);
+plot(1:length(T),T(1,:),'k');
+hold on;
+plot(1:length(T_est),T_est(1,:),'b-.');
+subplot(3,1,2);
+plot(1:length(T),T(2,:),'k');
+hold on;
+plot(1:length(T_est),T_est(2,:),'b-.');
+subplot(3,1,3);
+plot(1:length(T),T(3,:),'k');
+hold on;
+plot(1:length(T_est),T_est(3,:),'b-.');
+%%
+figure;
+subplot(3,1,1);
+plot(1:length(d_est),d_est(1,:),'b-.');
+subplot(3,1,2);
+plot(1:length(d_est),d_est(2,:),'b-.');
+subplot(3,1,3);
+plot(1:length(d_est),d_est(3,:),'b-.');
+
+
+
 % [param.P, ~, ~] = dare(param.A, param.B, param.Q, param.R);
 % l_f = X{end}'*param.P*X{end};
 % p = controller_mpc_1(T0_1);

@@ -53,8 +53,7 @@ function param = compute_controller_base_parameters
     param.B = B;
     param.B_d = B_d;
     param.C = eye(3);
-    param.C_d = zeros(3);
-    param.d = d;
+    param.C_d = 
     param.Q = Q;
     param.R = R;
     param.T_sp = T_sp;
@@ -63,7 +62,6 @@ function param = compute_controller_base_parameters
     param.Xcons = Xcons;
     param.Tcons = Tcons;
     param.Pcons = Pcons;
-    param.r = [T_1s;T_2s;0];
     
     x0_1 = [3 1 0]';
     x0_2 = [-1 -0.1 -4.5]';
