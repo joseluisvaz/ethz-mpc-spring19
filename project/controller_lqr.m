@@ -17,15 +17,15 @@ function p = controller_lqr(T)
     end
     
     X = T - param.T_sp; 
-    U = -param.F * X;
+    U = param.F * X;
     p = U + param.p_sp;
 end
 
 
 function param = init()
     param = compute_controller_base_parameters;
-    [~, ~, param.F] = dare(param.A, ... 
-                           param.B, ...
-                           param.Q, ...
-                           param.R);
+    param.F = -dlqr(param.A, ... 
+                    param.B, ...
+                    param.Q, ...
+                    param.R);
 end
