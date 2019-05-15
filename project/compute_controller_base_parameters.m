@@ -47,6 +47,7 @@ function param = compute_controller_base_parameters
     % (5) Compute_set_points as an optimization problem(param)
     [param.T_sp, param.p_sp] = ...
         compute_set_points(param, offset, [-20; 0.25]);
+    param.T_sp
     
     T_sp = zeros(3,1);
     T_sp(1) = -20;
@@ -56,6 +57,11 @@ function param = compute_controller_base_parameters
     p_sp = zeros(2,1);
     p_sp(1) = 1/B(1,1)*((1-A(1,1))*T_sp(1) -     A(1,2)*T_sp(2) - offset(1));
     p_sp(2) = 1/B(2,2)*(   -A(2,1)*T_sp(1) + (1-A(2,2))*T_sp(2) - A(2,3)*T_sp(3) - offset(2));
+    
+    p_sp = B\(T_sp - A*T_sp - offset);
+    
+    param.T_sp = T_sp;
+    param.p_sp = p_sp;
     
     param.Ucons = param.Pcons - param.p_sp;
     param.Xcons = param.Tcons - param.T_sp;
@@ -93,14 +99,7 @@ function [xs, us] = compute_set_points(param, offset, reference)
 end
 
 % % ANALYTICAL CALCULATION OF SETPOINTS
-%     T_sp = zeros(3,1);
-%     T_sp(1) = -20;
-%     T_sp(2) = 0.25;
-%     T_sp(3) = 1/(1-A(3,3)) * (A(3,2)*T_sp(2) + offset(3));
-%     
-%     p_sp = zeros(2,1);
-%     p_sp(1) = 1/B(1,1)*((1-A(1,1))*T_sp(1) -     A(1,2)*T_sp(2) - offset(1));
-%     p_sp(2) = 1/B(2,2)*(   -A(2,1)*T_sp(1) + (1-A(2,2))*T_sp(2) - A(2,3)*T_sp(3) - offset(2));
+
 % 
 %     % Approximating the input set point surprisingly similar
 %     p_sp = B\(T_sp - A*T_sp - offset);

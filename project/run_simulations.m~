@@ -16,9 +16,8 @@ X0_2 = [-1 -0.1 -4.5]';
 T0_1 = param.T_sp + X0_1;
 T0_2 = param.T_sp + X0_2;
 
-[T, p] = simulate_truck(T0_1, @controller_lqr,scen1);
- 
-X0 = X0_1;
+ [T, p] = simulate_truck(T0_1, @controller_lqr,scen1);
+% 
 % (5) Design LQR controller that converges reasonably fast
 if (norm(param.T_sp - T(:,31)) < 0.2*norm(X0))
     disp("LQR satisfies convergence");
@@ -43,20 +42,15 @@ disp(J_lqr(X0, P_lyap));
 % Sim system
 x_sim = zeros(3, 1001);
 x_sim(:,1) = X0; 
-for k = 1:100
+for k = 1:1000
     x_sim(:,k+1) = A_cl*x_sim(:,k);
 end
 
 % Estimate infinite horizon cost
 J_est = 0;
-Xsim = T - repmat(param.T_sp,1,101);
-Usim = p - repmat(param.p_sp,1,100);
-for k = 1:100
-%     J_est = J_est + x_sim(:,k)'*Q_cl*x_sim(:,k);
-      J_est = J_est + Xsim(:,k)'*param.Q*Xsim(:,k) ...
-          + Usim(:,k)'*param.R*Usim(:,k);
+for k = 1:1001
+    J_est = J_est + x_sim(:,k)'*Q_cl*x_sim(:,k);
 end
-J_est = J_est + Xsim(:,101)'*param.Q*Xsim(:,101);
 
 disp("Estimate LQR infinite horizon numerically");
 disp(J_est);
