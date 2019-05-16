@@ -7,7 +7,6 @@
 %   p: Cooling power, dimension (2,1)
 function p = controller_mpc_1(T)
 % controller variables
-global objective;
 persistent param yalmip_optimizer
 
 % initialize controller, if not done already
@@ -18,7 +17,6 @@ end
 %% evaluate control action by solving MPC problem, e.g.
 x = T - param.T_sp;
 [u_mpc,errorcode] = yalmip_optimizer(x);
-fprintf('JMPC_dummy = %f \n',value(objective));
 if (errorcode ~= 0)
       warning('MPC infeasible');
 end
@@ -45,14 +43,13 @@ nu = size(param.B,2);
 U = sdpvar(repmat(nu,1,N-1),repmat(1,1,N-1),'full');
 X = sdpvar(repmat(nx,1,N),repmat(1,1,N),'full');
 
-global objective;
 objective = 0;
 constraints = [];
 for k = 1:N-1
   % system dynamic constraints
   constraints = [constraints, X{k+1} == param.A * X{k} + param.B * U{k}];
   % state constraints
-  constraints = [constraints, Ax_cons*X{k+1} <= bx_cons];
+  constraints = [constraints, Ax_cons*X{k} <= bx_cons];
   % input constraints
   constraints = [constraints, Au_cons*U{k} <= bu_cons];
   % objective, sum of stage cost function

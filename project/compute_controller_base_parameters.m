@@ -2,7 +2,7 @@ function param = compute_controller_base_parameters
     % load truck parameters
     load('system/parameters_truck');
     
-    % (2) discretization
+%     (2) discretization
     Ts = 60;
     t = truck;
     A = zeros(3,3);
@@ -15,11 +15,10 @@ function param = compute_controller_base_parameters
     A(3,1) = 0;
     A(3,2) = Ts/t.m3*t.a23;
     A(3,3) = 1 + Ts/t.m3*(-t.a23-t.a3o);
-
     B = [Ts/t.m1 0;...
          0 Ts/t.m2;...
          0 0];
-     
+
     B_d = [Ts/t.m1 0 0;...
            0 Ts/t.m2 0;...
            0 0 Ts/t.m3];
@@ -31,11 +30,13 @@ function param = compute_controller_base_parameters
     % (3) set point computation
     T_1s = -20;
     T_2s = 0.25;
-    T_3s = (t.a23*T_2s + t.a3o*t.To)/(t.a23 + t.a3o);
+%     T_3s = A(3,2)/(1-A(3,3))*0.25 + 60/t.m3/(1-A(3,3))*d(3);
+    T_3s = 1/(1-A(3,3))*(A(3,1)*T_1s + A(3,2)*T_2s + ...
+            B_d(3,1)*d(1) + B_d(3,2)*d(2) + B_d(3,3)*d(3));
     
     T_sp = [T_1s;T_2s;T_3s];
     p_sp = B\(T_sp - A*T_sp - B_d*d);
-    
+
     % (4) system constraints
     Pcons = truck.InputConstraints;
     Tcons = truck.StateConstraints;
@@ -45,8 +46,8 @@ function param = compute_controller_base_parameters
     Xcons = [Tcons(:,1)-T_sp, Tcons(:,2)-T_sp];
     
     % (5) LQR cost function
-    Q = diag([500, 500, 0]);
-    R = diag([0.01, 0.01]);
+    Q = diag([500, 1000, 0]);
+    R = diag([0.01, 0.005]);
     
     % put everything together
     param.A = A;
@@ -64,9 +65,6 @@ function param = compute_controller_base_parameters
     param.Tcons = Tcons;
     param.Pcons = Pcons;
     param.r = [T_1s;T_2s;0];
-    
-    x0_1 = [3 1 0]';
-    x0_2 = [-1 -0.1 -4.5]';
-    param.x0 = x0_1;
+   
 end
 

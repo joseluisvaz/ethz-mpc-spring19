@@ -8,10 +8,7 @@
 function p = controller_mpc_5(T)
 % controller variables
 persistent param yalmip_optimizer
-persistent T_hat d_hat p_prev
-
-global T_est
-global d_est
+persistent T_hat d_hat
 
 % initialize controller, if not done already
 if isempty(param)
@@ -19,9 +16,6 @@ if isempty(param)
     T_hat = T;
     d_hat = param.d;
 end
-
-%% compute state and disturbance estimate
-% [T_hat, d_hat] = state_estimator(T, d, p_prev)
 
 %% compute steady state x and u
 H = diag([1,1,0]);
@@ -32,30 +26,22 @@ p_s = ss_vec(4:5);
 
 %% evaluate control action by solving MPC problem, e.g.
 x_hat = T_hat - T_s;
-[u_mpc,errorcode] = yalmip_optimizer(x_hat);
+[u_mpc,errorcode] = yalmip_optimizer([x_hat; T_s; p_s]);
+% [u_mpc,errorcode] = yalmip_optimizer(x_hat);
 if (errorcode ~= 0)
       warning('MPC infeasible');
 end
 p = u_mpc + p_s;
-% p_prev = p;
+
 y = param.C*T;
 est = param.A_aug*[T_hat;d_hat] + param.B_aug*p + ...
       param.L*(param.C*T_hat + param.C_d*d_hat - y);
 T_hat = est(1:3);
-T_est = [T_est T_hat];
+% T_est = [T_est T_hat];
 d_hat = est(4:6);
-d_est = [d_est d_hat];
+% d_est = [d_est d_hat];
 end
 
-% function [T_h, d_h] = state_estimator(T, d, p)
-%     
-%     y = param.C*T + param.C_d*d;
-%     est = param.A_aug*[T_hat;d_hat] + param.B_aug*p + ...
-%           param.L*(param.C*T_hat + param.C_d*d_hat - y);
-% 
-%     T_h = ;
-%     d_h = ;
-% end
 
 function [param, yalmip_optimizer] = init()
 % initializes the controller on first call and returns parameters and
@@ -66,7 +52,7 @@ param = compute_controller_base_parameters;
 A_aug = [param.A param.B_d; zeros(3) eye(3)];
 B_aug = [param.B; zeros(3,2)];
 C_aug = [eye(3) zeros(3)];
-L = -(place(A_aug',C_aug',[0,0,0,0.8,0.8,0.8]))';
+L = -(place(A_aug',C_aug',[0,0,0,0.5,0.5,0.5]))';
 param.A_aug = A_aug;
 param.B_aug = B_aug;
 param.C_aug = C_aug;
@@ -88,17 +74,22 @@ nu = size(param.B,2);
 
 U = sdpvar(repmat(nu,1,N-1),repmat(1,1,N-1),'full');
 X = sdpvar(repmat(nx,1,N),repmat(1,1,N),'full');
+T_s = sdpvar(3,1);
+p_s = sdpvar(2,1);
 
 objective = 0;
 constraints = [];
+
 for k = 1:N-1
   % system dynamic constraints
   constraints = [constraints, X{k+1} == param.A * X{k} + param.B * U{k}];
   % state constraints
-  constraints = [constraints, Ax_cons*X{k+1} <= bx_cons];
+%   constraints = [constraints, Ax_cons*X{k} <= bx_cons];
+  constraints = [constraints, param.Tcons(:,1) - T_s <= X{k} <= param.Tcons(:,2) - T_s];
   % input constraints
-  constraints = [constraints, Au_cons*U{k} <= bu_cons];
-  % objective, sum of stage cost function
+%   constraints = [constraints, Au_cons*U{k} <= bu_cons];
+  constraints = [constraints, param.Pcons(:,1) - p_s <= U{k} <= param.Pcons(:,2) - p_s];
+%   objective, sum of stage cost function
   objective = objective + X{k}' * param.Q * X{k} + U{k}' * param.R * U{k};
 end
 l_f = X{end}'*param.P*X{end};
@@ -112,6 +103,5 @@ constraints = [constraints, A_X_LQR*X{N} <= b_X_LQR];
 
 
 ops = sdpsettings('verbose',0,'solver','quadprog');
-% fprintf('JMPC_dummy = %f',value(objective));
-yalmip_optimizer = optimizer(constraints,objective,ops,x0,U{1});
+yalmip_optimizer = optimizer(constraints,objective,ops,[x0;T_s;p_s],U{1});
 end

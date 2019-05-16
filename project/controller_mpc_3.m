@@ -49,7 +49,7 @@ for k = 1:N-1
   % system dynamic constraints
   constraints = [constraints, X{k+1} == param.A * X{k} + param.B * U{k}];
   % state constraints
-  constraints = [constraints, Ax_cons*X{k+1} <= bx_cons];
+  constraints = [constraints, Ax_cons*X{k} <= bx_cons];
   % input constraints
   constraints = [constraints, Au_cons*U{k} <= bu_cons];
   % objective, sum of stage cost function
@@ -63,7 +63,6 @@ constraints = [constraints, X{1} == x0];
 
 [A_X_LQR, b_X_LQR] = compute_X_LQR;
 constraints = [constraints, A_X_LQR*X{N} <= b_X_LQR];
-
 
 ops = sdpsettings('verbose',0,'solver','quadprog');
 % fprintf('JMPC_dummy = %f',value(objective));

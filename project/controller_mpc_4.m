@@ -42,21 +42,28 @@ nu = size(param.B,2);
 
 U = sdpvar(repmat(nu,1,N-1),repmat(1,1,N-1),'full');
 X = sdpvar(repmat(nx,1,N),repmat(1,1,N),'full');
+e = sdpvar(repmat(2*nx,1,N),repmat(1,1,N),'full');
+
+v = 20000;
+s = 1;
 
 objective = 0;
 constraints = [];
 for k = 1:N-1
   % system dynamic constraints
   constraints = [constraints, X{k+1} == param.A * X{k} + param.B * U{k}];
+  % slack constraint
+  cosntraints = [constraints, e{k} >= 0];
   % state constraints
-  constraints = [constraints, Ax_cons*X{k+1} <= bx_cons];
+  constraints = [constraints, Ax_cons*X{k} - e{k} <= bx_cons];
   % input constraints
   constraints = [constraints, Au_cons*U{k} <= bu_cons];
   % objective, sum of stage cost function
   objective = objective + X{k}' * param.Q * X{k} + U{k}' * param.R * U{k};
+  objective = objective + v*norm(e{k},1) + s*e{k}'*e{k};
 end
 l_f = X{end}'*param.P*X{end};
-objective = objective + l_f;
+objective = objective + l_f +v*norm(e{end},1) + s*e{end}'*e{end};
 
 x0 = sdpvar(3,1);
 constraints = [constraints, X{1} == x0];
@@ -64,8 +71,6 @@ constraints = [constraints, X{1} == x0];
 [A_X_LQR, b_X_LQR] = compute_X_LQR;
 constraints = [constraints, A_X_LQR*X{N} <= b_X_LQR];
 
-
 ops = sdpsettings('verbose',0,'solver','quadprog');
-% fprintf('JMPC_dummy = %f',value(objective));
 yalmip_optimizer = optimizer(constraints,objective,ops,x0,U{1});
 end
